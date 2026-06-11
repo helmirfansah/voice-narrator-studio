@@ -1,9 +1,11 @@
+.venv/
 venv/
 __pycache__/
+uploads/*.wav
+uploads/*.mp3
+output/*.wav
+output/*.mp3
 *.pyc
-output/
-uploads/
-*.wav
-*.mp3
-*.ogg
-.env
+.DS_Store
+history.json
+config.json
