@@ -1,0 +1,11 @@
+TTS
+torch
+torchaudio
+fastapi
+uvicorn[standard]
+python-multipart
+jinja2
+aiofiles
+soundfile
+pydub
+httpx
