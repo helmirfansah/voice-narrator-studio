@@ -62,7 +62,7 @@
         }
         textarea:focus { outline: none; border-color: var(--accent); }
 
-        select, input[type="text"] {
+        select, input[type="text"], input[type="url"] {
             width: 100%; background: var(--surface-2); border: 1px solid var(--border);
             border-radius: 8px; padding: 10px 14px; color: var(--text);
             font-family: inherit; font-size: 14px; transition: border-color 0.2s;
@@ -113,7 +113,7 @@
         .speed-control input[type="range"] { flex: 1; accent-color: var(--accent); height: 4px; }
         .speed-value { font-size: 13px; color: var(--accent); font-weight: 600; min-width: 36px; text-align: right; }
 
-        .generate-area { display: flex; gap: 12px; align-items: center; }
+        .generate-area { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         .generate-area .btn-primary { padding: 12px 32px; font-size: 15px; font-weight: 600; }
         .char-count { font-size: 12px; color: var(--text-dim); margin-left: auto; }
 
@@ -180,9 +180,12 @@
 
         .mt-8 { margin-top: 8px; }
         .mt-16 { margin-top: 16px; }
+        .mb-12 { margin-bottom: 12px; }
         .flex { display: flex; }
         .items-center { align-items: center; }
         .justify-between { justify-content: space-between; }
+        .gap-8 { gap: 8px; }
+        .gap-12 { gap: 12px; }
 
         .voice-card {
             display: flex; align-items: center; gap: 12px; padding: 12px 16px;
@@ -194,17 +197,51 @@
         .voice-card .vc-icon { font-size: 24px; }
         .voice-card .vc-name { font-size: 14px; font-weight: 600; }
         .voice-card .vc-meta { font-size: 12px; color: var(--text-dim); }
+
+        /* URL input row */
+        .url-input-row {
+            display: flex; gap: 8px; align-items: center;
+        }
+        .url-input-row input { flex: 1; }
+        .url-input-row .btn { flex-shrink: 0; }
+
+        /* SRT checkbox */
+        .checkbox-row {
+            display: flex; align-items: center; gap: 8px; margin-top: 12px;
+        }
+        .checkbox-row input[type="checkbox"] {
+            accent-color: var(--accent); width: 16px; height: 16px;
+        }
+        .checkbox-row label { margin: 0; font-size: 13px; color: var(--text-dim); cursor: pointer; }
+
+        /* Post-process sliders */
+        .effect-row {
+            display: flex; align-items: center; gap: 12px; padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .effect-row:last-child { border-bottom: none; }
+        .effect-label { font-size: 13px; font-weight: 500; min-width: 140px; flex-shrink: 0; }
+        .effect-slider { flex: 1; accent-color: var(--accent); }
+        .effect-value { font-size: 12px; color: var(--accent); font-weight: 600; min-width: 50px; text-align: right; }
+        .effect-toggle { accent-color: var(--accent); width: 16px; height: 16px; }
+
+        /* Download buttons row */
+        .download-row {
+            display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
     <div class="app">
         <header>
             <h1>🎙️ Voice <span>Narrator</span> Studio</h1>
-            <p>Upload suaramu → tulis script → generate narasi profesional</p>
+            <p>Upload suaramu → tulis script → generate narasi profesional + subtitle</p>
         </header>
 
         <div class="tabs">
             <button class="tab active" data-tab="generate">Generate</button>
+            <button class="tab" data-tab="extract">Script Extractor</button>
+            <button class="tab" data-tab="postprocess">Post-Process</button>
             <button class="tab" data-tab="voices">Voice Cloning</button>
             <button class="tab" data-tab="history">History</button>
             <button class="tab" data-tab="settings">Settings</button>
@@ -245,6 +282,11 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                 <label>Pilih Suara</label>
                 <div id="voiceCards"></div>
 
+                <div class="checkbox-row">
+                    <input type="checkbox" id="generateSrt" checked>
+                    <label for="generateSrt">Auto-generate subtitle SRT</label>
+                </div>
+
                 <div class="generate-area mt-16">
                     <button class="btn btn-primary" id="generateBtn" onclick="generate()">🎤 Generate Narasi</button>
                 </div>
@@ -258,20 +300,116 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                     <div class="player-bar">
                         <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
                         <audio id="audioPlayer" controls></audio>
-                        <a class="btn btn-secondary btn-sm" id="downloadBtn" download>⬇ Download</a>
+                    </div>
+                    <div class="download-row" id="downloadRow">
+                        <a class="btn btn-secondary btn-sm" id="downloadWavBtn" download>⬇ WAV</a>
+                        <a class="btn btn-secondary btn-sm" id="downloadMp3Btn" download>⬇ MP3</a>
+                        <a class="btn btn-secondary btn-sm" id="downloadSrtBtn" download style="display:none">📄 SRT</a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ── VOICES TAB (ElevenLabs cloning) ───── -->
+        <!-- ── SCRIPT EXTRACTOR TAB ──────────────── -->
+        <div id="tab-extract" style="display:none">
+            <div class="card">
+                <div class="card-title"><span class="icon">🔗</span> Script dari URL / YouTube</div>
+                <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">
+                    Paste link artikel web atau YouTube video. Sistem akan extract teks dan buat script narasi yang siap di-generate.
+                </p>
+                <div class="url-input-row">
+                    <input type="url" id="extractUrl" placeholder="https://youtube.com/watch?v=... atau https://artikel.com/...">
+                    <button class="btn btn-primary" id="extractBtn" onclick="extractScript()">🔍 Extract</button>
+                </div>
+                <div class="status-bar" id="extractStatus">
+                    <div class="spinner"></div>
+                    <span class="status-text" id="extractStatusText">Extracting...</span>
+                </div>
+            </div>
+
+            <div class="card" id="extractResultCard" style="display:none">
+                <div class="card-title"><span class="icon">📄</span> Hasil Extract</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <span id="extractMeta" style="font-size:13px;color:var(--text-dim);"></span>
+                    <button class="btn btn-primary btn-sm" onclick="useExtractedText()">📝 Gunakan sebagai Script</button>
+                </div>
+                <textarea id="extractedText" style="min-height:300px;" readonly></textarea>
+            </div>
+        </div>
+
+        <!-- ── POST-PROCESS TAB ──────────────────── -->
+        <div id="tab-postprocess" style="display:none">
+            <div class="card">
+                <div class="card-title"><span class="icon">🎛️</span> Audio Post-Processing</div>
+                <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">
+                    Pilih audio dari History, lalu apply efek. Hasilnya jadi audio baru.
+                </p>
+
+                <div>
+                    <label>Pilih Audio</label>
+                    <select id="postProcessSelect">
+                        <option value="">-- Generate audio dulu --</option>
+                    </select>
+                </div>
+
+                <div class="mt-16">
+                    <div class="effect-row">
+                        <span class="effect-label">Fade In</span>
+                        <input type="range" class="effect-slider" id="fadeIn" min="0" max="5000" step="100" value="0">
+                        <span class="effect-value" id="fadeInVal">0ms</span>
+                    </div>
+                    <div class="effect-row">
+                        <span class="effect-label">Fade Out</span>
+                        <input type="range" class="effect-slider" id="fadeOut" min="0" max="5000" step="100" value="0">
+                        <span class="effect-value" id="fadeOutVal">0ms</span>
+                    </div>
+                    <div class="effect-row">
+                        <span class="effect-label">Bass Boost</span>
+                        <input type="range" class="effect-slider" id="bassBoost" min="0" max="12" step="0.5" value="0">
+                        <span class="effect-value" id="bassBoostVal">0 dB</span>
+                    </div>
+                    <div class="effect-row">
+                        <span class="effect-label">Normalize</span>
+                        <input type="checkbox" class="effect-toggle" id="normalizeCheck">
+                        <span style="font-size:12px;color:var(--text-dim);">Peak normalize to -1 dBFS</span>
+                    </div>
+                    <div class="effect-row">
+                        <span class="effect-label">Noise Gate</span>
+                        <input type="checkbox" class="effect-toggle" id="noiseGateCheck">
+                        <span style="font-size:12px;color:var(--text-dim);">Silence below <input type="text" id="noiseGateThreshold" value="-40" style="width:50px;display:inline-block;padding:2px 6px;font-size:12px;"> dB</span>
+                    </div>
+                </div>
+
+                <div class="generate-area mt-16">
+                    <button class="btn btn-primary" id="postProcessBtn" onclick="postProcess()">🎛️ Apply Effects</button>
+                </div>
+
+                <div class="status-bar" id="postProcessStatus">
+                    <div class="spinner"></div>
+                    <span class="status-text" id="postProcessStatusText">Processing...</span>
+                </div>
+
+                <div class="player-area" id="postProcessPlayer" style="margin-top:16px;">
+                    <div class="player-bar">
+                        <button class="play-btn" id="ppPlayBtn" onclick="togglePPPlay()">▶</button>
+                        <audio id="ppAudioPlayer" controls></audio>
+                    </div>
+                    <div class="download-row">
+                        <a class="btn btn-secondary btn-sm" id="ppDownloadBtn" download>⬇ Download Processed</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── VOICES TAB (Voice Cloning) ──────────── -->
         <div id="tab-voices" style="display:none">
             <div class="card">
-                <div class="card-title"><span class="icon">🧬</span> Voice Cloning (ElevenLabs)</div>
+                <div class="card-title"><span class="icon">🧬</span> Voice Cloning</div>
                 <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">
-                    Upload rekaman suaramu untuk voice cloning via ElevenLabs API. 
-                    Butuh API key ElevenLabs (set di tab Settings). 
-                    Rekaman minimal 3 detik, idealnya 30-60 detik untuk hasil terbaik.
+                    Upload rekaman suaramu untuk voice cloning. Ada 2 engine:
+                    <br>• <strong>HuggingFace</strong> — GRATIS, pakai model XTTS-v2 (butuh HF token gratis)
+                    <br>• <strong>ElevenLabs</strong> — Bayar, kualitas terbaik (butuh API key)
+                    <br>Rekaman minimal 3 detik, idealnya 30-60 detik untuk hasil terbaik.
                 </p>
                 <div class="upload-zone" id="uploadZone">
                     <div class="upload-icon">📁</div>
@@ -305,16 +443,24 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                 <div class="setting-row">
                     <div>
                         <div class="setting-label">Default TTS Engine</div>
-                        <div class="setting-desc">Edge TTS = gratis, ElevenLabs = voice cloning (bayar)</div>
+                        <div class="setting-desc">Edge TTS = gratis, HuggingFace = voice cloning gratis, ElevenLabs = voice cloning bayar</div>
                     </div>
                     <select id="engineSelect" style="width:200px">
                         <option value="edge-tts">Edge TTS (Free)</option>
+                        <option value="huggingface">HuggingFace (Free Clone)</option>
                         <option value="elevenlabs">ElevenLabs (Paid)</option>
                     </select>
                 </div>
                 <div class="setting-row">
                     <div>
-                        <div class="setting-label">ElevenLabs API Key</div>
+                        <div class="setting-label">HuggingFace Token (GRATIS)</div>
+                        <div class="setting-desc">Dapatkan dari huggingface.co/settings/tokens — buat akun gratis, klik "New token"</div>
+                    </div>
+                    <input type="text" id="huggingfaceToken" placeholder="hf_..." style="width:300px">
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">ElevenLabs API Key (Bayar)</div>
                         <div class="setting-desc">Dapatkan dari elevenlabs.io/app/settings/api-keys</div>
                     </div>
                     <input type="text" id="elevenlabsKey" placeholder="sk-..." style="width:300px">
@@ -334,6 +480,7 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
         let selectedSampleId = '';
         let isGenerating = false;
         let voicePresets = {};
+        let currentOutputId = '';
 
         // ── init ────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
@@ -344,6 +491,7 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
             setupTabs();
             setupUpload();
             setupScriptCounter();
+            setupSliders();
         });
 
         // ── tabs ────────────────────────────────────
@@ -358,6 +506,7 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                     if (name === 'voices') loadVoices();
                     if (name === 'history') loadHistory();
                     if (name === 'settings') loadSettings();
+                    if (name === 'postprocess') refreshPostProcessSelect();
                 });
             });
         }
@@ -370,6 +519,22 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                 const len = ta.value.length;
                 counter.textContent = `${len.toLocaleString('id')} / 10.000 karakter`;
                 counter.style.color = len > 10000 ? 'var(--danger)' : 'var(--text-dim)';
+            });
+        }
+
+        // ── sliders ─────────────────────────────────
+        function setupSliders() {
+            document.getElementById('speed').addEventListener('input', e => {
+                document.getElementById('speedValue').textContent = parseFloat(e.target.value).toFixed(2) + 'x';
+            });
+            document.getElementById('fadeIn').addEventListener('input', e => {
+                document.getElementById('fadeInVal').textContent = e.target.value + 'ms';
+            });
+            document.getElementById('fadeOut').addEventListener('input', e => {
+                document.getElementById('fadeOutVal').textContent = e.target.value + 'ms';
+            });
+            document.getElementById('bassBoost').addEventListener('input', e => {
+                document.getElementById('bassBoostVal').textContent = e.target.value + ' dB';
             });
         }
 
@@ -400,12 +565,10 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                 </div>
             `).join('');
 
-            // auto-select first if nothing selected
             const langVoices = Object.keys(voices);
             if (!selectedVoicePreset || !langVoices.includes(selectedVoicePreset)) {
                 selectedVoicePreset = langVoices[0] || '';
             }
-            // re-render with selection
             container.querySelectorAll('.voice-card').forEach((card, i) => {
                 card.classList.toggle('active', Object.keys(voices)[i] === selectedVoicePreset);
             });
@@ -413,7 +576,7 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
 
         function selectPreset(id) {
             selectedVoicePreset = id;
-            selectedSampleId = ''; // switch away from cloning mode
+            selectedSampleId = '';
             updateVoiceCards();
         }
 
@@ -481,6 +644,59 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
             showToast('Voice sample deleted', 'success');
         }
 
+        // ── FEATURE: Script Extractor ───────────────
+        async function extractScript() {
+            const url = document.getElementById('extractUrl').value.trim();
+            if (!url) { showToast('Masukkan URL dulu!', 'error'); return; }
+
+            const btn = document.getElementById('extractBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Extracting...';
+            showExtractStatus('Mengambil konten dari URL...', false);
+
+            const form = new FormData();
+            form.append('url', url);
+
+            try {
+                const res = await fetch('/api/extract-script', { method: 'POST', body: form });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Extraction failed');
+
+                document.getElementById('extractedText').value = data.text;
+                document.getElementById('extractMeta').textContent =
+                    `${data.source === 'youtube' ? '🎬 YouTube' : '📰 Artikel'} — ${data.char_count.toLocaleString('id')} karakter`;
+                document.getElementById('extractResultCard').style.display = 'block';
+                hideExtractStatus();
+                showToast(`Script extracted! (${data.char_count} karakter)`, 'success');
+            } catch (err) {
+                showExtractStatus(err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔍 Extract';
+            }
+        }
+
+        function useExtractedText() {
+            const text = document.getElementById('extractedText').value;
+            document.getElementById('scriptText').value = text;
+            // Trigger counter update
+            document.getElementById('scriptText').dispatchEvent(new Event('input'));
+            // Switch to generate tab
+            document.querySelector('.tab[data-tab="generate"]').click();
+            showToast('Script dipindahkan ke Generate tab!', 'success');
+        }
+
+        function showExtractStatus(msg, isError) {
+            const bar = document.getElementById('extractStatus');
+            const text = document.getElementById('extractStatusText');
+            const spinner = bar.querySelector('.spinner');
+            bar.classList.add('visible');
+            text.textContent = msg;
+            text.className = 'status-text' + (isError ? ' error' : '');
+            spinner.style.display = isError ? 'none' : 'block';
+        }
+        function hideExtractStatus() { document.getElementById('extractStatus').classList.remove('visible'); }
+
         // ── generate ────────────────────────────────
         async function generate() {
             const text = document.getElementById('scriptText').value.trim();
@@ -500,19 +716,39 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
             form.append('sample_id', selectedSampleId);
             form.append('voice_preset', selectedVoicePreset);
             form.append('speed', document.getElementById('speed').value);
+            form.append('generate_srt', document.getElementById('generateSrt').checked);
 
             try {
                 const res = await fetch('/api/generate', { method: 'POST', body: form });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || 'Generation failed');
 
-                const audioUrl = `/api/download/${data.output_id}`;
+                currentOutputId = data.output_id;
+
+                const wavUrl = `/api/download/${data.output_id}`;
+                const mp3Url = `/api/download/${data.output_id}?format=mp3`;
                 const player = document.getElementById('audioPlayer');
-                player.src = audioUrl;
-                document.getElementById('downloadBtn').href = audioUrl;
+                player.src = wavUrl;
+                document.getElementById('downloadWavBtn').href = wavUrl;
+                document.getElementById('downloadMp3Btn').href = mp3Url;
+
+                // SRT download
+                const srtBtn = document.getElementById('downloadSrtBtn');
+                if (data.srt_url) {
+                    srtBtn.href = data.srt_url;
+                    srtBtn.style.display = 'inline-flex';
+                } else {
+                    srtBtn.style.display = 'none';
+                }
+
                 document.getElementById('playerArea').classList.add('visible');
-                showStatus(`✅ Generated! ${data.duration}s via ${data.engine}`, false);
+                let statusMsg = `✅ Generated! ${data.duration}s via ${data.engine}`;
+                if (data.srt_url) statusMsg += ' + SRT subtitle';
+                showStatus(statusMsg, false);
                 showToast(`Audio generated (${data.duration}s)`, 'success');
+
+                // Refresh history dropdown for post-process
+                refreshPostProcessSelect();
             } catch (err) {
                 showStatus(err.message, true);
             } finally {
@@ -520,6 +756,82 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                 btn.disabled = false;
                 btn.textContent = '🎤 Generate Narasi';
             }
+        }
+
+        // ── FEATURE: Post-Processing ────────────────
+        async function refreshPostProcessSelect() {
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+                const select = document.getElementById('postProcessSelect');
+                const current = select.value;
+                select.innerHTML = '<option value="">-- Pilih Audio --</option>';
+                data.history.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h.output_id;
+                    opt.textContent = `${h.output_id} — ${h.duration}s`;
+                    select.appendChild(opt);
+                });
+                if (current) select.value = current;
+            } catch (err) { console.error('refreshPostProcessSelect error:', err); }
+        }
+
+        async function postProcess() {
+            const outputId = document.getElementById('postProcessSelect').value;
+            if (!outputId) { showToast('Pilih audio dulu!', 'error'); return; }
+
+            const btn = document.getElementById('postProcessBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Processing...';
+            showPPStatus('Applying effects...', false);
+            document.getElementById('postProcessPlayer').classList.remove('visible');
+
+            const form = new FormData();
+            form.append('output_id', outputId);
+            form.append('fade_in', document.getElementById('fadeIn').value);
+            form.append('fade_out', document.getElementById('fadeOut').value);
+            form.append('bass_boost', document.getElementById('bassBoost').value);
+            form.append('normalize_audio', document.getElementById('normalizeCheck').checked);
+            form.append('noise_gate', document.getElementById('noiseGateCheck').checked);
+            form.append('noise_gate_threshold', document.getElementById('noiseGateThreshold').value);
+
+            try {
+                const res = await fetch('/api/post-process', { method: 'POST', body: form });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Post-processing failed');
+
+                const downloadUrl = `/api/download/${data.output_id}`;
+                const ppPlayer = document.getElementById('ppAudioPlayer');
+                ppPlayer.src = downloadUrl;
+                document.getElementById('ppDownloadBtn').href = downloadUrl;
+                document.getElementById('postProcessPlayer').classList.add('visible');
+
+                const effects = Object.entries(data.effects_applied).filter(([k,v]) => v).map(([k]) => k).join(', ');
+                showPPStatus(`✅ Done! ${data.duration}s — Effects: ${effects || 'none'}`, false);
+                showToast('Post-processing complete!', 'success');
+            } catch (err) {
+                showPPStatus(err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🎛️ Apply Effects';
+            }
+        }
+
+        function showPPStatus(msg, isError) {
+            const bar = document.getElementById('postProcessStatus');
+            const text = document.getElementById('postProcessStatusText');
+            const spinner = bar.querySelector('.spinner');
+            bar.classList.add('visible');
+            text.textContent = msg;
+            text.className = 'status-text' + (isError ? ' error' : '');
+            spinner.style.display = isError ? 'none' : 'block';
+        }
+
+        function togglePPPlay() {
+            const player = document.getElementById('ppAudioPlayer');
+            const btn = document.getElementById('ppPlayBtn');
+            if (player.paused) { player.play(); btn.textContent = '⏸'; }
+            else { player.pause(); btn.textContent = '▶'; }
         }
 
         // ── player ──────────────────────────────────
@@ -542,9 +854,15 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                 }
                 list.innerHTML = data.history.map(h => `
                     <div class="history-item">
-                        <div class="history-info">🎵 ${h.output_id} — ${h.duration}s — ${new Date(h.created).toLocaleString('id')}</div>
+                        <div class="history-info">
+                            🎵 ${h.output_id} — ${h.duration}s
+                            ${h.has_srt ? ' 📄' : ''}
+                            — ${new Date(h.created).toLocaleString('id')}
+                        </div>
                         <div class="history-actions">
-                            <a class="btn btn-secondary btn-sm" href="/api/download/${h.output_id}" download>⬇</a>
+                            <a class="btn btn-secondary btn-sm" href="/api/download/${h.output_id}" download title="WAV">⬇</a>
+                            <a class="btn btn-secondary btn-sm" href="/api/download/${h.output_id}?format=mp3" download title="MP3">🎵</a>
+                            ${h.has_srt ? `<a class="btn btn-secondary btn-sm" href="/api/download-srt/${h.output_id}" download title="SRT">📄</a>` : ''}
                             <button class="btn btn-danger" onclick="deleteHistory('${h.output_id}')">🗑️</button>
                         </div>
                     </div>
@@ -555,6 +873,7 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
         async function deleteHistory(id) {
             await fetch(`/api/history/${id}`, { method: 'DELETE' });
             loadHistory();
+            refreshPostProcessSelect();
             showToast('Audio deleted', 'success');
         }
 
@@ -570,17 +889,13 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
         async function saveSettings() {
             const form = new FormData();
             form.append('engine', document.getElementById('engineSelect').value);
+            form.append('huggingface_token', document.getElementById('huggingfaceToken').value);
             form.append('elevenlabs_api_key', document.getElementById('elevenlabsKey').value);
             try {
                 await fetch('/api/config', { method: 'POST', body: form });
                 showToast('Settings saved!', 'success');
             } catch (err) { showToast('Failed to save settings', 'error'); }
         }
-
-        // ── speed slider ────────────────────────────
-        document.getElementById('speed').addEventListener('input', e => {
-            document.getElementById('speedValue').textContent = parseFloat(e.target.value).toFixed(2) + 'x';
-        });
 
         // ── status & toast ──────────────────────────
         function showStatus(msg, isError) {
