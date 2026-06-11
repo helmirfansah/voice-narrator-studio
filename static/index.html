@@ -409,12 +409,33 @@ Selamat datang di video ini. Hari ini kita akan membahas tentang teknologi AI ya
                     Upload rekaman suaramu untuk voice cloning. Ada 2 engine:
                     <br>• <strong>HuggingFace</strong> — GRATIS, pakai model XTTS-v2 (butuh HF token gratis)
                     <br>• <strong>ElevenLabs</strong> — Bayar, kualitas terbaik (butuh API key)
-                    <br>Rekaman minimal 3 detik, idealnya 30-60 detik untuk hasil terbaik.
                 </p>
+
+                <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">
+                    <div style="font-size:14px;font-weight:600;margin-bottom:10px;">🎙️ Panduan Rekam Suara</div>
+                    <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">
+                        <strong>Durasi ideal:</strong> 15–30 detik &nbsp;|&nbsp; <strong>Format:</strong> WAV/MP3/M4A &nbsp;|&nbsp; <strong>Minimal:</strong> 10 detik
+                        <br><strong>Tips:</strong> Ruangan sepi, jarak mic ~30cm, ngomong natural kayak biasa.
+                    </div>
+                    <div style="font-size:13px;margin-bottom:8px;font-weight:500;">Contoh kalimat yang bisa lo ucapin:</div>
+                    <div style="background:var(--bg);border-radius:6px;padding:12px;margin-bottom:8px;">
+                        <div style="font-size:12px;color:var(--accent);margin-bottom:4px;">🇮🇩 Bahasa Indonesia</div>
+                        <div style="font-size:13px;color:var(--text);line-height:1.7;">
+                            "Halo guys, selamat datang di channel gw. Hari ini gw mau bahas sesuatu yang menarik banget buat kalian. Jadi gini ceritanya, gw baru aja nemuin informasi yang sangat berguna dan gw pengen share ke kalian semua. Semoga informasi ini bisa bermanfaat ya."
+                        </div>
+                    </div>
+                    <div style="background:var(--bg);border-radius:6px;padding:12px;">
+                        <div style="font-size:12px;color:var(--accent);margin-bottom:4px;">🇬🇧 English</div>
+                        <div style="font-size:13px;color:var(--text);line-height:1.7;">
+                            "Hey everyone, welcome back to my channel. Today I'm going to share something really interesting with you guys. So basically, I just found out about this amazing piece of information and I wanted to break it down for you. I hope you find this helpful."
+                        </div>
+                    </div>
+                </div>
+
                 <div class="upload-zone" id="uploadZone">
                     <div class="upload-icon">📁</div>
                     <p>Drag & drop audio file atau klik untuk upload</p>
-                    <div class="hint">WAV, MP3, M4A, OGG — Max 25MB — Min 3 detik</div>
+                    <div class="hint">WAV, MP3, M4A, OGG — Max 25MB — Min 10 detik, ideal 15–30 detik</div>
                     <input type="file" id="voiceFile" accept=".wav,.mp3,.m4a,.ogg,.flac,.webm">
                 </div>
             </div>
